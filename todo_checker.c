@@ -58,7 +58,7 @@ int print_file_todos(char filepath[])
     }
 
     Todos todos = {0};
-    
+
     char *line = NULL;
     size_t line_size = 0;
     ssize_t read = 0;
