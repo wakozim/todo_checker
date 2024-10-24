@@ -69,8 +69,8 @@ int print_file_todos(char filepath[])
         char *todo_loc = strstr(line, "TODO");
         if (todo_loc != NULL) {
             int todo_text_len = strlen(line) + strlen(filepath) + 1024;
-            char *todo_text = calloc(sizeof(char), todo_text_len);
-            sprintf(todo_text, "   %s:%d:%d: %s", filepath, lines, todo_loc - line, line);
+            char *todo_text = calloc(todo_text_len, sizeof(char));
+            sprintf(todo_text, "   %s:%d:%ld: %s", filepath, lines, todo_loc - line, line);
 
             // Calculate the priority based on the number of O
             int priority = 0;
@@ -134,6 +134,5 @@ int main(int argc, char **argv)
             printf("\n\n");
         }
     }
-    getchar();
     return 0;
 }
