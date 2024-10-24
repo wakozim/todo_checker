@@ -8,7 +8,7 @@ Simple command line tool for checking TODOs in files.
 
 ## Building
 ```console
-$ git clone https://github.com/wakozim/autostereograms.git
+$ git clone https://github.com/wakozim/todo_checker.git
 $ gcc -O3 -Wall -Wextra -o todo_checker todo_checker.c
 $ ./todo_checker
 ```
