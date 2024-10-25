@@ -119,9 +119,9 @@ int main(int argc, char **argv)
             struct dirent *dir;
             while ((dir = readdir(d)) != NULL) {
                 if (dir->d_type != DT_REG) continue;
-                char filepath[1024];
-                memset(filepath, '0', 1024);
-                sprintf(filepath, "%s%s", argv[j], dir->d_name);
+                char filepath[1024] = {0};
+                const char *format = argv[j][strlen(argv[j]) - 1] == '/' ? "%s%s" : "%s/%s" ;
+                sprintf(filepath, format, argv[j], dir->d_name);
                 print_file_todos(filepath);
             }
             closedir(d);
