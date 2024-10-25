@@ -12,14 +12,14 @@
 #define DA_INIT_CAP 256
 // Append an item to a dynamic array
 #define da_append(da, item)                                                          \
-    do {                                                                                 \
-        if ((da)->count >= (da)->capacity) {                                             \
+    do {                                                                             \
+        if ((da)->count >= (da)->capacity) {                                         \
             (da)->capacity = (da)->capacity == 0 ? DA_INIT_CAP : (da)->capacity*2;   \
             (da)->items = REALLOC((da)->items, (da)->capacity*sizeof(*(da)->items)); \
             ASSERT((da)->items != NULL && "Buy more RAM lol");                       \
-        }                                                                                \
-                                                                                         \
-        (da)->items[(da)->count++] = (item);                                             \
+        }                                                                            \
+                                                                                     \
+        (da)->items[(da)->count++] = (item);                                         \
     } while (0)
 
 
@@ -49,7 +49,7 @@ void sort_todos(Todos *todos)
 }
 
 
-int print_file_todos(char filepath[])
+int print_file_todos(char filepath[], size_t *todos_count)
 {
     FILE *file = fopen(filepath, "r");
     if (file == NULL) {
@@ -91,6 +91,7 @@ int print_file_todos(char filepath[])
         sort_todos(&todos);
         for (int i = 0; i < todos.count; i++) {
             printf("%s", todos.items[i].line);
+            if (todos_count != NULL) *todos_count += 1;
             free(todos.items[i].line);
         }
         printf("%d TODO was found in %s\n", todos.count, filepath);
@@ -116,18 +117,20 @@ int main(int argc, char **argv)
     for (int j = 1; j < argc; j++) {
         DIR *d = opendir(argv[j]);
         if (d) {
+            size_t todos_count = 0;
             struct dirent *dir;
             while ((dir = readdir(d)) != NULL) {
                 if (dir->d_type != DT_REG) continue;
                 char filepath[1024] = {0};
                 const char *format = argv[j][strlen(argv[j]) - 1] == '/' ? "%s%s" : "%s/%s" ;
                 sprintf(filepath, format, argv[j], dir->d_name);
-                print_file_todos(filepath);
+                print_file_todos(filepath, &todos_count);
             }
+            printf("[INFO] %ld TODO found in %s\n", todos_count, argv[j]);
             closedir(d);
         }
         else {
-            print_file_todos(argv[j]);
+            print_file_todos(argv[j], NULL);
         }
 
         if (j != argc - 1) {
