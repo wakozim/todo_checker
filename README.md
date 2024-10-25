@@ -15,7 +15,7 @@ $ ./todo_checker
 
 ## Usage
 
-To run the checker, you can simply call `./todo_checker [FILE|DIR]...`. The argument(s) can be any file or directory. For example:
+To run the checker, you can simply call `./todo_checker [OPTION]... [FILE|DIR]...` (see `--help` text for details). The argument(s) can be any file or directory. For example:
 ```sh
 ./todo_checker ./example.c
 ```

@@ -4,6 +4,9 @@
 #include <string.h>
 #include <assert.h>
 #include <dirent.h>
+#include <unistd.h>
+#include <getopt.h>
+#include <stdbool.h>
 
 #define ASSERT assert
 #define REALLOC realloc
@@ -33,6 +36,20 @@ typedef struct Todos {
     int count;
     int capacity;
 } Todos;
+
+
+static struct option long_options[] =
+{
+    {"help", no_argument, NULL, 'h'},
+    {"recursive", no_argument, NULL, 'r'},
+    {"silence", no_argument, NULL, 's'},
+    {NULL, 0, NULL, 0}
+};
+
+
+static bool recursive = false;
+static bool silence   = false;
+
 
 
 void sort_todos(Todos *todos)
@@ -91,10 +108,10 @@ int print_file_todos(char filepath[], size_t *todos_count)
         sort_todos(&todos);
         for (int i = 0; i < todos.count; i++) {
             printf("%s", todos.items[i].line);
-            if (todos_count != NULL) *todos_count += 1;
             free(todos.items[i].line);
         }
         printf("%d TODO was found in %s\n", todos.count, filepath);
+        if (todos_count != NULL) *todos_count += todos.count;
         free(todos.items);
     } else {
         printf("No TODO was found in %s\n", filepath);
@@ -104,38 +121,70 @@ int print_file_todos(char filepath[], size_t *todos_count)
     return 0;
 }
 
+void print_dir_todos(char *dirpath, size_t *acc)
+{
+    DIR *d = opendir(dirpath);
+    if (d) {
+        size_t todos_count = 0;
+        struct dirent *dir;
+        while ((dir = readdir(d)) != NULL) {
+            if (strcmp(dir->d_name, ".") == 0) continue;
+            if (strcmp(dir->d_name, "..") == 0) continue;
+
+            char filepath[1024] = {0};
+            const char *format = dirpath[strlen(dirpath) - 1] == '/' ? "%s%s" : "%s/%s" ;
+            sprintf(filepath, format, dirpath, dir->d_name);
+
+            if (dir->d_type == DT_DIR && recursive) print_dir_todos(filepath, &todos_count);
+            else if (dir->d_type == DT_REG) print_file_todos(filepath, &todos_count);
+        }
+        if (acc != NULL) *acc += todos_count;
+        if (!silence) printf("[INFO] %ld TODO found in %s\n", todos_count, dirpath);
+        closedir(d);
+    } else {
+        print_file_todos(dirpath, NULL);
+    }
+}
+
+void print_usage(const char *program)
+{
+    printf("Usage: %s [OPTION]... [FILE|DIR]...\n", program);
+    printf("Find TODOs in FILE(s) or DIR(s).\n");
+    printf("\n");
+    printf("  -h, --help           display this message and exit\n");
+    printf("  -r, --recursive      read all files under each directory, recursively\n");
+    printf("  -s, --silence        silence mode, suppress logs\n");
+    printf("\n");
+    printf("Examples:\n");
+    printf("  %s -rs ./test\n", program);
+    printf("  %s example.c\n", program);
+}
+
 
 int main(int argc, char **argv)
 {
-    if (argc == 1) {
+    int opt;
+    while ((opt = getopt_long(argc, argv, "hrs", long_options, NULL)) != -1) {
+        switch (opt) {
+        case 'r': recursive = true; break;
+        case 's': silence = true; break;
+        case 'h':
+        default:
+            print_usage(argv[0]);
+            return 1;
+        }
+    }
+    
+    if (argc - optind == 0) {
         fprintf(stderr, "[ERROR] No input file was provided!\n");
-        fprintf(stderr, "Usage:\n");
-        fprintf(stderr, "   %s [FILE|DIR]...\n", argv[0]);
+        print_usage(argv[0]);
         return 1;
     }
-
-    for (int j = 1; j < argc; j++) {
-        DIR *d = opendir(argv[j]);
-        if (d) {
-            size_t todos_count = 0;
-            struct dirent *dir;
-            while ((dir = readdir(d)) != NULL) {
-                if (dir->d_type != DT_REG) continue;
-                char filepath[1024] = {0};
-                const char *format = argv[j][strlen(argv[j]) - 1] == '/' ? "%s%s" : "%s/%s" ;
-                sprintf(filepath, format, argv[j], dir->d_name);
-                print_file_todos(filepath, &todos_count);
-            }
-            printf("[INFO] %ld TODO found in %s\n", todos_count, argv[j]);
-            closedir(d);
-        }
-        else {
-            print_file_todos(argv[j], NULL);
-        }
-
-        if (j != argc - 1) {
-            printf("\n\n");
-        }
+    
+    // Treat all input files as dir
+    for (int j = optind; j < argc; j++) {
+        print_dir_todos(argv[j], NULL);
     }
+
     return 0;
 }
